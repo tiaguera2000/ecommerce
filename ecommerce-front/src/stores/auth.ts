@@ -17,10 +17,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     await api.post('/logout')
+    clearAuth()
+  }
+
+  function clearAuth() {
     token.value = null
     user.value = null
     localStorage.removeItem('token')
   }
 
-  return { token, user, isAuthenticated, login, logout }
+  return { token, user, isAuthenticated, login, logout, clearAuth }
 })
