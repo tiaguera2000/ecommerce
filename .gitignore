@@ -1,0 +1,4 @@
+.env
+*.log
+dump-*.sql
+composer-setup.php
