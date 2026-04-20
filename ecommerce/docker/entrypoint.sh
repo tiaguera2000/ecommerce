@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# Cria .env a partir do .env.example se não existir
+if [ ! -f /var/www/.env ]; then
+  cp /var/www/.env.example /var/www/.env
+fi
+
 # Gera APP_KEY se não existir
 if [ -z "$APP_KEY" ]; then
   php artisan key:generate --force
