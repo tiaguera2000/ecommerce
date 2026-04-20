@@ -11,9 +11,14 @@ if [ -z "$APP_KEY" ]; then
   php artisan key:generate --force
 fi
 
-# Roda migrations e seed
+# Roda migrations (idempotente, seguro rodar sempre)
 php artisan migrate --force
-php artisan db:seed --force
+
+# Roda seed apenas se o banco estiver vazio (primeira vez)
+USER_COUNT=$(php artisan tinker --no-interaction --execute="echo \App\Models\User::count();" 2>/dev/null | tr -d '[:space:]')
+if [ "$USER_COUNT" = "0" ]; then
+  php artisan db:seed --force
+fi
 
 # Limpa e otimiza caches
 php artisan config:cache
