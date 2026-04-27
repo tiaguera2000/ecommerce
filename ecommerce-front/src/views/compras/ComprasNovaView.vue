@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ProdutosService, type Produto } from '@/services/produtos'
-import { ComprasService } from '@/services/compras'
+import { useProdutosStore } from '@/stores/produtos'
+import { useComprasStore } from '@/stores/compras'
 
 const router = useRouter()
+const produtosStore = useProdutosStore()
+const comprasStore = useComprasStore()
 
-const produtos = ref<Produto[]>([])
-const loadingProdutos = ref(true)
 const loading = ref(false)
 const errors = ref<Record<string, string>>({})
 const resultado = ref<{ fornecedor: string; itens: ResultadoItem[] } | null>(null)
@@ -22,17 +22,10 @@ interface ResultadoItem {
 const fornecedor = ref('')
 const itens = ref([{ produto_id: '', quantidade: 1, preco_unitario: '' }])
 
-onMounted(async () => {
-  try {
-    const { data } = await ProdutosService.listar(1, 100)
-    produtos.value = data.data
-  } finally {
-    loadingProdutos.value = false
-  }
-})
+onMounted(() => produtosStore.buscarTodos())
 
-function getProduto(id: string | number): Produto | undefined {
-  return produtos.value.find(p => p.id === Number(id))
+function getProduto(id: string | number) {
+  return produtosStore.todos.find(p => p.id === Number(id))
 }
 
 function addItem() {
@@ -58,7 +51,7 @@ async function handleSubmit() {
   const itensFiltrados = itens.value.filter(i => i.produto_id)
 
   try {
-    await ComprasService.realizar({
+    await comprasStore.realizar({
       fornecedor: fornecedor.value,
       produtos: itensFiltrados.map(i => ({
         id: Number(i.produto_id),
@@ -164,7 +157,7 @@ function formatCurrency(v: number) {
         <!-- Produtos -->
         <div class="form-section-title">Produtos adquiridos</div>
 
-        <div v-if="loadingProdutos" class="loading-text">Carregando produtos...</div>
+        <div v-if="produtosStore.loadingTodos" class="loading-text">Carregando produtos...</div>
 
         <div v-else>
           <div
@@ -180,7 +173,7 @@ function formatCurrency(v: number) {
                 :class="{ 'input-error': errors[`produtos.${index}.id`] }"
               >
                 <option value="">Selecione...</option>
-                <option v-for="p in produtos" :key="p.id" :value="p.id">
+                <option v-for="p in produtosStore.todos" :key="p.id" :value="p.id">
                   {{ p.nome }}
                 </option>
               </select>
@@ -250,7 +243,7 @@ function formatCurrency(v: number) {
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary" :disabled="loading || loadingProdutos">
+          <button type="submit" class="btn btn-primary" :disabled="loading || produtosStore.loadingTodos">
             {{ loading ? 'Registrando...' : 'Registrar Compra' }}
           </button>
         </div>

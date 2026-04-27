@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ProdutosService } from '@/services/produtos'
+import { useProdutosStore } from '@/stores/produtos'
 
 const router = useRouter()
+const produtosStore = useProdutosStore()
 
 const form = ref({ nome: '', preco_venda: '' })
 const errors = ref<Record<string, string>>({})
@@ -16,7 +17,7 @@ async function handleSubmit() {
   sucesso.value = false
 
   try {
-    await ProdutosService.cadastrar({
+    await produtosStore.cadastrar({
       nome: form.value.nome,
       preco_venda: Number(form.value.preco_venda),
     })

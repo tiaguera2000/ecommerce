@@ -1,28 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ProdutosService, type Produto } from '@/services/produtos'
-import { VendasService, type VendaResponse } from '@/services/vendas'
+import { useProdutosStore } from '@/stores/produtos'
+import { useVendasStore } from '@/stores/vendas'
 
 const router = useRouter()
+const produtosStore = useProdutosStore()
+const vendasStore = useVendasStore()
 
-const produtos = ref<Produto[]>([])
 const loading = ref(false)
-const loadingProdutos = ref(true)
 const errors = ref<Record<string, string>>({})
-const resultado = ref<VendaResponse | null>(null)
 
 const cliente = ref('')
 const itens = ref([{ produto_id: '', quantidade: 1 }])
 
-onMounted(async () => {
-  try {
-    const { data } = await ProdutosService.listar(1, 100)
-    produtos.value = data.data.filter(p => p.quantidade > 0)
-  } finally {
-    loadingProdutos.value = false
-  }
-})
+onMounted(() => produtosStore.buscarTodos())
 
 function addItem() {
   itens.value.push({ produto_id: '', quantidade: 1 })
@@ -32,8 +24,8 @@ function removeItem(index: number) {
   itens.value.splice(index, 1)
 }
 
-function getProduto(id: string | number): Produto | undefined {
-  return produtos.value.find(p => p.id === Number(id))
+function getProduto(id: string | number) {
+  return produtosStore.comEstoque.find(p => p.id === Number(id))
 }
 
 const totalEstimado = computed(() => {
@@ -46,19 +38,18 @@ const totalEstimado = computed(() => {
 async function handleSubmit() {
   errors.value = {}
   loading.value = true
-  resultado.value = null
+  vendasStore.limparResultado()
 
   const itensFiltrados = itens.value.filter(i => i.produto_id)
 
   try {
-    const { data } = await VendasService.realizar({
+    await vendasStore.realizar({
       cliente: cliente.value,
       produtos: itensFiltrados.map(i => ({
         id: Number(i.produto_id),
         quantidade: Number(i.quantidade),
       })),
     })
-    resultado.value = data
     cliente.value = ''
     itens.value = [{ produto_id: '', quantidade: 1 }]
   } catch (err: any) {
@@ -89,19 +80,19 @@ function formatCurrency(value: number) {
     </div>
 
     <!-- Resultado da venda -->
-    <div v-if="resultado" class="resultado-card">
+    <div v-if="vendasStore.resultado" class="resultado-card">
       <h2>✅ Venda realizada com sucesso!</h2>
       <div class="resultado-valores">
         <div class="resultado-item">
           <span>Total da venda</span>
-          <strong>{{ formatCurrency(resultado.total) }}</strong>
+          <strong>{{ formatCurrency(vendasStore.resultado.total) }}</strong>
         </div>
         <div class="resultado-item lucro">
           <span>Lucro obtido</span>
-          <strong>{{ formatCurrency(resultado.lucro) }}</strong>
+          <strong>{{ formatCurrency(vendasStore.resultado.lucro) }}</strong>
         </div>
       </div>
-      <button class="btn btn-primary" @click="resultado = null">Nova Venda</button>
+      <button class="btn btn-primary" @click="vendasStore.limparResultado()">Nova Venda</button>
     </div>
 
     <div v-else class="card form-card">
@@ -122,7 +113,7 @@ function formatCurrency(value: number) {
         <!-- Produtos -->
         <div class="form-section-title">Produtos</div>
 
-        <div v-if="loadingProdutos" class="loading-text">Carregando produtos...</div>
+        <div v-if="produtosStore.loadingTodos" class="loading-text">Carregando produtos...</div>
 
         <div v-else>
           <div
@@ -138,7 +129,7 @@ function formatCurrency(value: number) {
               >
                 <option value="">Selecione...</option>
                 <option
-                  v-for="p in produtos"
+                  v-for="p in produtosStore.comEstoque"
                   :key="p.id"
                   :value="p.id"
                 >
@@ -195,7 +186,7 @@ function formatCurrency(value: number) {
           <button
             type="submit"
             class="btn btn-primary"
-            :disabled="loading || loadingProdutos"
+            :disabled="loading || produtosStore.loadingTodos"
           >
             {{ loading ? 'Processando...' : 'Finalizar Venda' }}
           </button>

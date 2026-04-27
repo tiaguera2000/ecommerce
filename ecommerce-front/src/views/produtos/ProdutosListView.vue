@@ -1,25 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ProdutosService, type Produto, type PaginatedResponse } from '@/services/produtos'
+import { useProdutosStore } from '@/stores/produtos'
 
 const router = useRouter()
-const loading = ref(true)
-const paginacao = ref<PaginatedResponse<Produto> | null>(null)
-const pagina = ref(1)
+const produtosStore = useProdutosStore()
 
-async function carregar(p = 1) {
-  loading.value = true
-  try {
-    const { data } = await ProdutosService.listar(p)
-    paginacao.value = data
-    pagina.value = p
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => carregar())
+onMounted(() => produtosStore.listar())
 
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -39,9 +26,9 @@ function formatCurrency(v: number) {
     </div>
 
     <div class="table-card">
-      <div v-if="loading" class="table-loading">Carregando...</div>
+      <div v-if="produtosStore.loading" class="table-loading">Carregando...</div>
 
-      <table v-else-if="paginacao && paginacao.data.length" class="table">
+      <table v-else-if="produtosStore.paginacao && produtosStore.paginacao.data.length" class="table">
         <thead>
           <tr>
             <th>#</th>
@@ -52,7 +39,7 @@ function formatCurrency(v: number) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="produto in paginacao.data" :key="produto.id">
+          <tr v-for="produto in produtosStore.paginacao.data" :key="produto.id">
             <td class="td-id">{{ produto.id }}</td>
             <td class="td-nome">{{ produto.nome }}</td>
             <td>{{ formatCurrency(produto.preco_venda) }}</td>
@@ -68,13 +55,12 @@ function formatCurrency(v: number) {
 
       <div v-else class="table-empty">Nenhum produto cadastrado ainda.</div>
 
-      <!-- Paginação -->
-      <div v-if="paginacao && paginacao.last_page > 1" class="pagination">
-        <button class="btn btn-ghost btn-sm" :disabled="pagina === 1" @click="carregar(pagina - 1)">
+      <div v-if="produtosStore.paginacao && produtosStore.paginacao.last_page > 1" class="pagination">
+        <button class="btn btn-ghost btn-sm" :disabled="produtosStore.pagina === 1" @click="produtosStore.listar(produtosStore.pagina - 1)">
           ← Anterior
         </button>
-        <span class="pagination-info">{{ pagina }} / {{ paginacao.last_page }}</span>
-        <button class="btn btn-ghost btn-sm" :disabled="pagina === paginacao.last_page" @click="carregar(pagina + 1)">
+        <span class="pagination-info">{{ produtosStore.pagina }} / {{ produtosStore.paginacao.last_page }}</span>
+        <button class="btn btn-ghost btn-sm" :disabled="produtosStore.pagina === produtosStore.paginacao.last_page" @click="produtosStore.listar(produtosStore.pagina + 1)">
           Próxima →
         </button>
       </div>
